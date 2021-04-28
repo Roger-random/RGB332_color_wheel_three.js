@@ -9,4 +9,6 @@ in the browser using
 
 ## Status
 
-Running through three.js tutorials.
+[Color wheel is available now](https://roger-random.github.io/RGB332_color_wheel_three.js/)
+
+Potential future addition: Show RGB332 value when clicking on one of the colorful boxes.
