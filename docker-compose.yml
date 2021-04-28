@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   webhost:
-    image: nginx:stable-alpine
+    image: nginx-nocache
     ports:
       - 8332:80
     volumes:
