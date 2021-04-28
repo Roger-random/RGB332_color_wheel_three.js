@@ -2,6 +2,8 @@ import * as THREE from 'https://cdn.skypack.dev/three';
 import {OrbitControls} from "https://cdn.skypack.dev/three/examples/jsm/controls/OrbitControls";
 
 const scene = new THREE.Scene();
+scene.background = new THREE.Color( 0x808080 );
+
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
 const renderer = new THREE.WebGLRenderer();
@@ -10,32 +12,16 @@ document.body.appendChild( renderer.domElement );
 
 const orbitControl = new OrbitControls( camera, renderer.domElement );
 
-const axisZ = new THREE.Vector3(0,0,1);
+const boxGeometry = new THREE.BoxGeometry();
 
-const geometry = new THREE.BoxGeometry();
-const material = new THREE.MeshBasicMaterial( { color: 0x003300 } );
-var cube = new THREE.Mesh( geometry, material );
-scene.add( cube );
-
-cube = new THREE.Mesh( geometry, material );
-cube.position.x = 2;
-scene.add( cube );
-
-cube = new THREE.Mesh( geometry, material );
-cube.position.x = -2;
-
-var group = new THREE.Group();
-group.add( cube );
-group.rotateZ(0.1);
-scene.add(group);
-
-camera.position.z = 5;
+camera.position.z = 30;
 orbitControl.update();
 
 class rgb332 {
   constructor(rgb332) {
     this.color8 = rgb332;
 
+    // Convert to 24-bit RGB888 and also prepare fractional RGB for later
     var red = this.color8 >> 5;
     this.redf = red/7;
     this.red8 = this.redf * 0xFF;
@@ -49,7 +35,53 @@ class rgb332 {
     this.blue8 = this.bluef * 0xFF;
 
     this.color24 = this.red8 << 16 | this.green8 << 8 | this.blue8;
+
+    // Use fractional RGB to calculate HSV using algorithm modified from
+    // https://dystopiancode.blogspot.com/2012/06/hsv-rgb-conversion-algorithms-in-c.html
+
+    var major = Math.max(this.redf, this.greenf, this.bluef);
+    var minor = Math.min(this.redf, this.greenf, this.bluef);
+    var chroma = major-minor;
+
+    this.val = major;
+
+    if (0.0 != chroma) {
+      if (major == this.redf) {
+        this.hue = (( this.greenf - this.bluef ) / chroma) % 6.0;
+      } else if (major == this.greenf) {
+        this.hue = (( this.bluef - this.redf ) / chroma) + 2.0;
+      } else {
+        this.hue = (( this.redf - this.greenf ) / chroma) + 4.0;
+      }
+      this.hue *= 60.0;
+
+      if (0 < major) {
+        this.sat = chroma / major;
+      } else {
+        this.sat = 0;
+      }
+    } else {
+      this.hue = 0;
+      this.sat = 0;
+    }
   }
+}
+
+const satScale = 15;
+const valScale = 10;
+
+for(var i = 0; i <= 0xFF; i++) {
+  var nowColor = new rgb332(i);
+  var nowMat = new THREE.MeshBasicMaterial( { color: nowColor.color24 } );
+  var nowCube = new THREE.Mesh( boxGeometry, nowMat );
+  nowCube.position.y = nowColor.sat * satScale;
+  nowCube.position.z = nowColor.val * valScale;
+
+  var rotor = new THREE.Group();
+  rotor.add(nowCube);
+  rotor.rotateZ(2*Math.PI*nowColor.hue/360);
+
+  scene.add(rotor);
 }
 
 function animate() {
