@@ -1,23 +1,26 @@
-import * as THREE from 'https://cdn.skypack.dev/three';
-import {OrbitControls} from "https://cdn.skypack.dev/three/examples/jsm/controls/OrbitControls";
+import * as THREE from './three.js';
+import {OrbitControls} from './OrbitControls.js';
 
-const scene = new THREE.Scene();
-scene.background = new THREE.Color( 0x808080 );
+var scene;
+var camera;
+var renderer;
+var orbitControl;
 
-const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+function begin() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color( 0x808080 );
 
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize( window.innerWidth, window.innerHeight );
-document.body.appendChild( renderer.domElement );
+  camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+  camera.position.z = 35;
 
-const orbitControl = new OrbitControls( camera, renderer.domElement );
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize( window.innerWidth, window.innerHeight );
+  document.body.appendChild( renderer.domElement );
 
-const boxGeometry = new THREE.BoxGeometry();
+  orbitControl = new OrbitControls( camera, renderer.domElement );
+}
 
-camera.position.z = 30;
-orbitControl.update();
-
-class rgb332 {
+class RGB332 {
   constructor(rgb332) {
     this.color8 = rgb332;
 
@@ -67,21 +70,24 @@ class rgb332 {
   }
 }
 
-const satScale = 15;
-const valScale = 10;
+function addColors() {
+  const boxGeometry = new THREE.BoxGeometry();
+  const satScale = 15;
+  const valScale = 10;
 
-for(var i = 0; i <= 0xFF; i++) {
-  var nowColor = new rgb332(i);
-  var nowMat = new THREE.MeshBasicMaterial( { color: nowColor.color24 } );
-  var nowCube = new THREE.Mesh( boxGeometry, nowMat );
-  nowCube.position.y = nowColor.sat * satScale;
-  nowCube.position.z = nowColor.val * valScale;
+  for(var i = 0; i <= 0xFF; i++) {
+    var nowColor = new RGB332(i);
+    var nowMat = new THREE.MeshBasicMaterial( { color: nowColor.color24 } );
+    var nowCube = new THREE.Mesh( boxGeometry, nowMat );
+    nowCube.position.y = nowColor.sat * satScale;
+    nowCube.position.z = nowColor.val * valScale;
 
-  var rotor = new THREE.Group();
-  rotor.add(nowCube);
-  rotor.rotateZ(2*Math.PI*nowColor.hue/360);
+    var rotor = new THREE.Group();
+    rotor.add(nowCube);
+    rotor.rotateZ(2*Math.PI*nowColor.hue/360);
 
-  scene.add(rotor);
+    scene.add(rotor);
+  }
 }
 
 function animate() {
@@ -89,4 +95,7 @@ function animate() {
   orbitControl.update();
   renderer.render( scene, camera );
 }
+
+begin();
+addColors();
 animate();
