@@ -4,28 +4,95 @@ import {OrbitControls} from './OrbitControls.js';
 var scene;
 var camera;
 var renderer;
+var rayCaster;
 var orbitControl;
+
+var onScreenText;
+var rgb332Text;
+var colorMap;
+var hsvCyl;
+var downTarget;
+var pointerLocation;
 
 function begin() {
   scene = new THREE.Scene();
-  scene.background = new THREE.Color( 0x808080 );
 
   var aspect = window.innerWidth / window.innerHeight;
   camera = new THREE.PerspectiveCamera( 75, aspect, 0.1, 1000 );
-  //camera = new THREE.OrthographicCamera( -20*aspect, 20*aspect, 20, -20, 0.1, 1000 );
   camera.position.z = 35;
 
   renderer = new THREE.WebGLRenderer();
   renderer.setSize( window.innerWidth, window.innerHeight );
   document.body.appendChild( renderer.domElement );
 
+  rayCaster = new THREE.Raycaster();
+  pointerLocation = new THREE.Vector2();
+
   orbitControl = new OrbitControls( camera, renderer.domElement );
+
+  onScreenText = document.getElementsByClassName("onScreenText");
+  rgb332Text = document.getElementById("rgb332code");
+
+  window.addEventListener( 'pointerdown', down_handler, false );
+  window.addEventListener( 'pointerup', up_handler, false );
 }
 
 function resizeView() {
   renderer.setSize( window.innerWidth, window.innerHeight );
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
+}
+
+function down_handler(pointerEvent) {
+  downTarget = pointerObject(pointerEvent);
+}
+
+function up_handler(pointerEvent) {
+  var upTarget = pointerObject(pointerEvent);
+
+  if (upTarget != null && upTarget == downTarget) {
+    updateBackground(colorMap.get(upTarget));
+  }
+}
+
+function pointerObject(pointerEvent) {
+  if (pointerEvent.isPrimary) {
+    pointerLocation.x = ( pointerEvent.clientX / window.innerWidth ) * 2 - 1;
+    pointerLocation.y = - ( pointerEvent.clientY / window.innerHeight ) * 2 + 1;
+
+    rayCaster.setFromCamera(pointerLocation, camera);
+
+    const intersects = rayCaster.intersectObjects(scene.children, true);
+
+    if (intersects.length > 0) {
+      return intersects[0].object;
+    }
+  }
+
+  return null;
+}
+
+function updateBackground(rgbObject) {
+  var newTextColor;
+  var hexPrefix;
+
+  if (rgbObject.color8 < 15) {
+    hexPrefix = "0x0";
+  } else {
+    hexPrefix = "0x";
+  }
+  rgb332Text.textContent = hexPrefix+rgbObject.color8.toString(16).toUpperCase();
+
+  if (rgbObject.val > 0.5) {
+    newTextColor = "black";
+  } else {
+    newTextColor = "white";
+  }
+  for(var i = 0; i < onScreenText.length; i++) {
+    onScreenText[i].style.color = newTextColor;
+  }
+
+  scene.background = new THREE.Color(rgbObject.color24);
 }
 
 class RGB332 {
@@ -75,13 +142,12 @@ class RGB332 {
   }
 }
 
-var hsvCyl;
-
 function addColors() {
   const boxGeometry = new THREE.BoxGeometry();
   const satScale = 15;
   const valScale = 10;
 
+  colorMap = new Map();
   hsvCyl = new THREE.Group();
 
   for(var i = 0; i <= 0xFF; i++) {
@@ -89,14 +155,14 @@ function addColors() {
     var nowMat = new THREE.MeshBasicMaterial( { color: nowColor.color24 } );
     var nowCube = new THREE.Mesh( boxGeometry, nowMat );
     nowCube.position.y = nowColor.sat * satScale;
-    // Top layer only if (1 == nowColor.val) {
     nowCube.position.z = nowColor.val * valScale;
 
     var rotor = new THREE.Group();
     rotor.add(nowCube);
     rotor.rotateZ(2*Math.PI*nowColor.hue/360);
     hsvCyl.add(rotor);
-    // Top layer only }
+
+    colorMap.set(nowCube, nowColor);
   }
 
   hsvCyl.rotateZ(-Math.PI/3);
@@ -109,7 +175,7 @@ function animate() {
   renderer.render( scene, camera );
 }
 
-function eventSetup() {
+function contentLoaded() {
   begin();
   addColors();
   animate();
@@ -119,5 +185,5 @@ function eventSetup() {
 //
 //  Page load setup
 
-document.addEventListener('DOMContentLoaded', eventSetup, false);
+document.addEventListener('DOMContentLoaded', contentLoaded, false);
 document.defaultView.addEventListener('resize', resizeView);

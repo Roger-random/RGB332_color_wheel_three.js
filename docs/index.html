@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-        <title>RGB332 Color Wheel</title>
+        <title>RGB332 Color Picker</title>
         <style>
             body {
                 margin: 0;
@@ -13,7 +13,6 @@
 
             .onScreenText {
                 position: absolute;
-                font-family: 'Consolas', 'Courier New', Courier, monospace;
                 color: white;
                 text-align: left;
                 z-index: 100;
@@ -23,19 +22,19 @@
             #instruction1 {
                 top: 10px;
                 left: 10px;
-                font-size: 20px;
+                font-size: 10px;
                 font-family: Arial, Helvetica, sans-serif;
             }
 
             #instruction2 {
-                top: 50px;
+                top: 40px;
                 left: 10px;
-                font-size: 20px;
+                font-size: 10px;
                 font-family: Arial, Helvetica, sans-serif;
             }
 
             #rgb332code {
-                top: 70px;
+                top: 50px;
                 left: 10px;
                 font-size: 60px;
                 font-family: 'Consolas', 'Courier New', Courier, monospace;
@@ -44,8 +43,8 @@
     </head>
     <body>
         <script type="module" src="js/color_wheel.js"></script>
-        <div class="onScreenText" id="instruction1">Click on color to change background color.</div>
-        <div class="onScreenText" id="instruction2">Background RGB332 value:</div>
+        <div class="onScreenText" id="instruction1">Click on new background color</div>
+        <div class="onScreenText" id="instruction2">Background color in RGB332:</div>
         <div class="onScreenText" id="rgb332code">0x00</div>
     </body>
 </html>
