@@ -10,7 +10,9 @@ function begin() {
   scene = new THREE.Scene();
   scene.background = new THREE.Color( 0x808080 );
 
-  camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+  var aspect = window.innerWidth / window.innerHeight;
+  camera = new THREE.PerspectiveCamera( 75, aspect, 0.1, 1000 );
+  //camera = new THREE.OrthographicCamera( -20*aspect, 20*aspect, 20, -20, 0.1, 1000 );
   camera.position.z = 35;
 
   renderer = new THREE.WebGLRenderer();
@@ -70,24 +72,32 @@ class RGB332 {
   }
 }
 
+var hsvCyl;
+
 function addColors() {
   const boxGeometry = new THREE.BoxGeometry();
   const satScale = 15;
   const valScale = 10;
+
+  hsvCyl = new THREE.Group();
 
   for(var i = 0; i <= 0xFF; i++) {
     var nowColor = new RGB332(i);
     var nowMat = new THREE.MeshBasicMaterial( { color: nowColor.color24 } );
     var nowCube = new THREE.Mesh( boxGeometry, nowMat );
     nowCube.position.y = nowColor.sat * satScale;
+    // Top layer only if (1 == nowColor.val) {
     nowCube.position.z = nowColor.val * valScale;
 
     var rotor = new THREE.Group();
     rotor.add(nowCube);
     rotor.rotateZ(2*Math.PI*nowColor.hue/360);
-
-    scene.add(rotor);
+    hsvCyl.add(rotor);
+    // Top layer only }
   }
+
+  hsvCyl.rotateZ(-Math.PI/3);
+  scene.add(hsvCyl);
 }
 
 function animate() {
