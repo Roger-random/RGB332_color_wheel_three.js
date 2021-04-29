@@ -22,21 +22,24 @@ function begin() {
   orbitControl = new OrbitControls( camera, renderer.domElement );
 }
 
+function resizeView() {
+  renderer.setSize( window.innerWidth, window.innerHeight );
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+}
+
 class RGB332 {
   constructor(rgb332) {
     this.color8 = rgb332;
 
     // Convert to 24-bit RGB888 and also prepare fractional RGB for later
-    var red = this.color8 >> 5;
-    this.redf = red/7;
+    this.redf = (this.color8 >> 5)/7;
     this.red8 = this.redf * 0xFF;
 
-    var green = (this.color8 & 0x1C) >> 2;
-    this.greenf = green/7;
+    this.greenf = ((this.color8 & 0x1C) >> 2)/7;
     this.green8 = this.greenf * 0xFF;
 
-    var blue = this.color8 & 0x03;
-    this.bluef = blue/3;
+    this.bluef = (this.color8 & 0x03)/3;
     this.blue8 = this.bluef * 0xFF;
 
     this.color24 = this.red8 << 16 | this.green8 << 8 | this.blue8;
@@ -106,6 +109,15 @@ function animate() {
   renderer.render( scene, camera );
 }
 
-begin();
-addColors();
-animate();
+function eventSetup() {
+  begin();
+  addColors();
+  animate();
+}
+
+//////////////////////////////////////////////////////////////////////////
+//
+//  Page load setup
+
+document.addEventListener('DOMContentLoaded', eventSetup, false);
+document.defaultView.addEventListener('resize', resizeView);
