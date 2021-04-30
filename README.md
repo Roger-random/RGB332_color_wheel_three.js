@@ -7,8 +7,10 @@ to access it via GitHub Pages.
 
 An interactive color picker for
 [8-bit RGB332 colors](https://github.com/Roger-random/ESP_8_BIT_composite#8-bit-color)
-with colors arranged in a
+with colors arranged in either a
 [HSV color cylinder](https://en.wikipedia.org/wiki/HSL_and_HSV)
+or a
+[RGB color cube](https://en.wikipedia.org/wiki/RGB_color_space)
 built using the
 [three.js](https://threejs.org) 3D framework.
 
