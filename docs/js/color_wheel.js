@@ -261,7 +261,11 @@ function addColors() {
   // Adjust these values to tune HSV <-> RGB animation
   const animDuration = 1.0;
   const animTimes = [0, animDuration];
-  const defaultQuaternionArray = new THREE.Quaternion().toArray();
+  const scratchQuaternion = new THREE.Quaternion();
+  scratchQuaternion.identity();
+  const identityQuaternionArray = scratchQuaternion.toArray();
+  const axisZ = new THREE.Vector3(0, 0, 1);
+
   toRGBanim = new Array();
   toHSVanim = new Array();
   animMixers = new Array();
@@ -294,6 +298,12 @@ function addColors() {
     var cubeMixer = new THREE.AnimationMixer(nowCube);
     animMixers.push(cubeMixer);
 
+    if(nowColor.hue >= 0 && nowColor.hue < 180) {
+      // HACK: I clearly don't understand quaternions
+      xRGB *= -1;
+      yRGB *= -1;
+    }
+
     var cubeToRGBTrack = new THREE.VectorKeyframeTrack(
       ".position",
       animTimes,
@@ -324,8 +334,17 @@ function addColors() {
     var rotor = new THREE.Group();
 
     rotor.add(nowCube);
-    // The +0.1 tilts the 180 degree items in the direction I want for animation
+    // HACK: The +0.1 tilts the 180 degree items in the direction I want for animation
     rotor.rotateZ(2*Math.PI*(nowColor.hue+0.1)/360);
+    var hsvRotorQuaternionArray = rotor.quaternion.toArray();
+
+    var rgbRotorQuaterionArray = identityQuaternionArray;
+    if(nowColor.hue >= 0 && nowColor.hue < 180) {
+      // HACK: I clearly don't understand quaternions
+      scratchQuaternion.identity();
+      scratchQuaternion.setFromAxisAngle(axisZ, Math.PI);
+      rgbRotorQuaterionArray = scratchQuaternion.toArray();;
+    }
 
     // Create RGB <-> HSV animation objects
     var rotorMixer = new THREE.AnimationMixer(rotor);
@@ -334,7 +353,7 @@ function addColors() {
     var rotorToRGBTrack = new THREE.QuaternionKeyframeTrack(
       ".quaternion",
       animTimes,
-      rotor.quaternion.toArray().concat(defaultQuaternionArray));
+      hsvRotorQuaternionArray.concat(rgbRotorQuaterionArray));
     var rotorToRGBClip = new THREE.AnimationClip(
       "RotorToRGB"+i,
       -1,
@@ -347,7 +366,7 @@ function addColors() {
     var rotorToHSVTrack = new THREE.QuaternionKeyframeTrack(
       ".quaternion",
       animTimes,
-      defaultQuaternionArray.concat(rotor.quaternion.toArray()));
+      rgbRotorQuaterionArray.concat(hsvRotorQuaternionArray));
     var rotorToHSVClip = new THREE.AnimationClip(
       "RotorToHSV"+i,
       -1,
