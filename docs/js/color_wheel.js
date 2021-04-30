@@ -261,7 +261,7 @@ function addColors() {
   // Adjust these values to tune HSV <-> RGB animation
   const animDuration = 1.0;
   const animTimes = [0, animDuration];
-  const defaultQuaternion = new THREE.Quaternion();
+  const defaultQuaternionArray = new THREE.Quaternion().toArray();
   toRGBanim = new Array();
   toHSVanim = new Array();
   animMixers = new Array();
@@ -283,8 +283,8 @@ function addColors() {
     var yHSV = nowColor.sat * satScale;
     var zHSV = (nowColor.val-0.5) * valScale;
 
-    var xRGB = (nowColor.redf-0.5) * xScale;
-    var yRGB = (nowColor.greenf-0.5) * yScale;
+    var xRGB = (nowColor.redf-1) * xScale;
+    var yRGB = (nowColor.greenf-1) * yScale;
     var zRGB = (nowColor.bluef-0.5) * zScale;
 
     nowCube.position.y = yHSV;
@@ -324,7 +324,8 @@ function addColors() {
     var rotor = new THREE.Group();
 
     rotor.add(nowCube);
-    rotor.rotateZ(2*Math.PI*nowColor.hue/360);
+    // The +0.1 tilts the 180 degree items in the direction I want for animation
+    rotor.rotateZ(2*Math.PI*(nowColor.hue+0.1)/360);
 
     // Create RGB <-> HSV animation objects
     var rotorMixer = new THREE.AnimationMixer(rotor);
@@ -333,7 +334,7 @@ function addColors() {
     var rotorToRGBTrack = new THREE.QuaternionKeyframeTrack(
       ".quaternion",
       animTimes,
-      rotor.quaternion.toArray().concat(defaultQuaternion.toArray()));
+      rotor.quaternion.toArray().concat(defaultQuaternionArray));
     var rotorToRGBClip = new THREE.AnimationClip(
       "RotorToRGB"+i,
       -1,
@@ -346,7 +347,7 @@ function addColors() {
     var rotorToHSVTrack = new THREE.QuaternionKeyframeTrack(
       ".quaternion",
       animTimes,
-      defaultQuaternion.toArray().concat(rotor.quaternion.toArray()));
+      defaultQuaternionArray.concat(rotor.quaternion.toArray()));
     var rotorToHSVClip = new THREE.AnimationClip(
       "RotorToHSV"+i,
       -1,
@@ -361,7 +362,41 @@ function addColors() {
     colorMap.set(nowCube, nowColor);
   }
 
+  hsvCyl.rotateZ(-Math.PI/2);
+  var rgbQuatArray = hsvCyl.quaternion.toArray();
+  hsvCyl.rotateZ(+Math.PI/2);
+
   hsvCyl.rotateZ(-Math.PI/3);
+  // Create RGB <-> HSV animation objects
+  var cylMixer = new THREE.AnimationMixer(hsvCyl);
+  animMixers.push(cylMixer);
+
+  var cylToRGBTrack = new THREE.QuaternionKeyframeTrack(
+    ".quaternion",
+    animTimes,
+    hsvCyl.quaternion.toArray().concat(rgbQuatArray));
+  var hsvCylToRGBClip = new THREE.AnimationClip(
+    "CylinToRGB",
+    -1,
+    [cylToRGBTrack]);
+  var cylToRGB = cylMixer.clipAction(hsvCylToRGBClip);
+  cylToRGB.setLoop(THREE.LoopOnce);
+  cylToRGB.clampWhenFinished = true;
+  toRGBanim.push(cylToRGB);
+
+  var cylToHSVTrack = new THREE.QuaternionKeyframeTrack(
+    ".quaternion",
+    animTimes,
+    rgbQuatArray.concat(hsvCyl.quaternion.toArray()));
+  var hsvCylToHSVClip = new THREE.AnimationClip(
+    "CylinToHSV",
+    -1,
+    [cylToHSVTrack]);
+  var cylToHSV = cylMixer.clipAction(hsvCylToHSVClip);
+  cylToHSV.setLoop(THREE.LoopOnce);
+  cylToHSV.clampWhenFinished = true;
+  toHSVanim.push(cylToHSV);
+
   scene.add(hsvCyl);
 }
 
@@ -369,7 +404,7 @@ function addColors() {
 function animate() {
   orbitControl.update();
   var clockDelta = clock.getDelta();
-  for(var i = 0; i < toRGBanim.length; i++) {
+  for(var i = 0; i < animMixers.length; i++) {
     animMixers[i].update(clockDelta);
   }
   renderer.render( scene, camera );
