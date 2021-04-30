@@ -78,7 +78,7 @@ function begin() {
   camera = new THREE.PerspectiveCamera( 75, aspect, 0.1, 1000 );
   camera.position.z = 35;
 
-  renderer = new THREE.WebGLRenderer();
+  renderer = new THREE.WebGLRenderer( { antialias: true } );
   renderer.setSize( window.innerWidth, window.innerHeight );
   document.body.appendChild( renderer.domElement );
 
