@@ -44,6 +44,9 @@ var renderer;
 /** Three.js Raycaster */
 var rayCaster;
 
+/** Three.js timer object */
+var clock;
+
 /** Three.js Orbit control */
 var orbitControl;
 
@@ -60,6 +63,10 @@ var rgb332Text;
 /** Map object from Three.js mesh to RGb332 class */
 var colorMap;
 
+//////////////////////////////////////////////////////////////////////////
+//
+//  Pointer hit-testing
+
 /** Three.js Group of all the color blocks */
 var hsvCyl;
 
@@ -68,6 +75,14 @@ var downTarget;
 
 /** Three.js Vector2 representing normalized pointer event location */
 var pointerLocation;
+
+//////////////////////////////////////////////////////////////////////////
+//
+//  Animating HSV/RGB spaces
+
+var toRGBanim;
+var toHSVanim;
+var animMixers;
 
 /** Called once upon HTML DOM initialization. */
 function begin() {
@@ -80,11 +95,15 @@ function begin() {
 
   renderer = new THREE.WebGLRenderer( { antialias: true } );
   renderer.setSize( window.innerWidth, window.innerHeight );
+  renderer.setAnimationLoop(animate);
   document.body.appendChild( renderer.domElement );
 
   // Set up raycaster and location we'll use with it for pointer hit testing.
   rayCaster = new THREE.Raycaster();
   pointerLocation = new THREE.Vector2();
+
+  // Create clock
+  clock = new THREE.Clock();
 
   // Orbit control allows user to navigate the 3D space
   orbitControl = new OrbitControls( camera, renderer.domElement );
@@ -166,6 +185,10 @@ function updateBackground(rgbObject) {
 
   // Update background color
   scene.background = new THREE.Color(rgbObject.color24);
+
+  for(var i = 0; i < toRGBanim.length; i++) {
+    toRGBanim[i].play();
+  }
 }
 
 /** Calculate RGB888 and HSV equivalents of given RGB332 value */
@@ -226,6 +249,14 @@ function addColors() {
   const satScale = 15;
   const valScale = 10;
 
+  // Adjust these values to tune HSV <-> RGB animation
+  const animDuration = 1.0;
+  const animTimes = [0, animDuration];
+  const defaultQuaternion = new THREE.Quaternion();
+  toRGBanim = new Array();
+  toHSVanim = new Array();
+  animMixers = new Array();
+
   // Map used to find color from its representative Mesh
   colorMap = new Map();
 
@@ -241,8 +272,43 @@ function addColors() {
     nowCube.position.z = nowColor.val * valScale;
 
     var rotor = new THREE.Group();
+
     rotor.add(nowCube);
     rotor.rotateZ(2*Math.PI*nowColor.hue/360);
+
+    // Record the rotated state for HSV cylinder
+    var rotorRotateHSV = rotor.quaternion;
+
+    // Create RGB <-> HSV animation objects
+    var rotorMixer = new THREE.AnimationMixer(rotor);
+    animMixers.push(rotorMixer);
+
+    var rotorToRGBTrack = new THREE.QuaternionKeyframeTrack(
+      ".quaternion",
+      animTimes,
+      rotorRotateHSV.toArray().concat(defaultQuaternion.toArray()));
+    var rotorToRGBClip = new THREE.AnimationClip(
+      "RotorToRGB"+i,
+      -1,
+      [rotorToRGBTrack]);
+    var rotorToRGB = rotorMixer.clipAction(rotorToRGBClip);
+    rotorToRGB.setLoop(THREE.LoopOnce);
+    rotorToRGB.clampWhenFinished = true;
+    toRGBanim.push(rotorToRGB);
+
+    var rotorToHSVTrack = new THREE.QuaternionKeyframeTrack(
+      ".quaternion",
+      animTimes,
+      defaultQuaternion.toArray().concat(rotorRotateHSV.toArray()));
+    var rotorToHSVClip = new THREE.AnimationClip(
+      "RotorToHSV"+i,
+      -1,
+      [rotorToHSVTrack]);
+    var rotorToHSV = rotorMixer.clipAction(rotorToHSVClip);
+    rotorToHSV.setLoop(THREE.LoopOnce);
+    rotorToHSV.clampWhenFinished = true;
+    toHSVanim.push(rotorToHSV);
+
     hsvCyl.add(rotor);
 
     colorMap.set(nowCube, nowColor);
@@ -254,8 +320,11 @@ function addColors() {
 
 /** Callback to update rendering based on user navigation handled by orbitControl */
 function animate() {
-  requestAnimationFrame( animate );
   orbitControl.update();
+  var clockDelta = clock.getDelta();
+  for(var i = 0; i < toRGBanim.length; i++) {
+    animMixers[i].update(clockDelta);
+  }
   renderer.render( scene, camera );
 }
 
@@ -263,7 +332,6 @@ function animate() {
 function contentLoaded() {
   begin();
   addColors();
-  animate();
 }
 
 //////////////////////////////////////////////////////////////////////////
