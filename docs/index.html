@@ -65,6 +65,13 @@ SOFTWARE.
                 font-size: 60px;
                 font-family: 'Consolas', 'Courier New', Courier, monospace;
             }
+
+            #modelSwitch {
+                position: absolute;
+                top: 140px;
+                left: 10px;
+                z-index: 100;
+            }
         </style>
     </head>
     <body>
@@ -72,5 +79,6 @@ SOFTWARE.
         <div class="onScreenText" id="instruction1">Click on new background color</div>
         <div class="onScreenText" id="instruction2">Background color in RGB332:</div>
         <div class="onScreenText" id="rgb332code">0x00</div>
+        <button type="button" id="modelSwitch">Switch to RGB</button>
     </body>
 </html>

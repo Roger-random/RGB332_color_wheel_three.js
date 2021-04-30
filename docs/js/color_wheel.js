@@ -84,6 +84,9 @@ var toRGBanim;
 var toHSVanim;
 var animMixers;
 
+var button;
+var isHSV;
+
 /** Called once upon HTML DOM initialization. */
 function begin() {
   // Initialize Three.js environment, copied from tutorial.
@@ -115,6 +118,11 @@ function begin() {
   // Start listening to pointer events.
   window.addEventListener( 'pointerdown', down_handler, false );
   window.addEventListener( 'pointerup', up_handler, false );
+
+  // Connect the color model switch button
+  button = document.getElementById("modelSwitch");
+  button.addEventListener('click', switchColorModel);
+  isHSV = true;
 }
 
 /** Update Three.js objects whenever window is resized */
@@ -185,10 +193,6 @@ function updateBackground(rgbObject) {
 
   // Update background color
   scene.background = new THREE.Color(rgbObject.color24);
-
-  for(var i = 0; i < toRGBanim.length; i++) {
-    toRGBanim[i].play();
-  }
 }
 
 /** Calculate RGB888 and HSV equivalents of given RGB332 value */
@@ -249,6 +253,11 @@ function addColors() {
   const satScale = 15;
   const valScale = 10;
 
+  // Adjust these values to increase/decrease density of colors in RGB rectangle
+  const xScale = -20;
+  const yScale = -20;
+  const zScale = 10;
+
   // Adjust these values to tune HSV <-> RGB animation
   const animDuration = 1.0;
   const animTimes = [0, animDuration];
@@ -266,18 +275,56 @@ function addColors() {
   // Add 256 boxes, one for each color.
   for(var i = 0; i <= 0xFF; i++) {
     var nowColor = new RGB332(i);
+
+    // Create box to represent color
     var nowMat = new THREE.MeshBasicMaterial( { color: nowColor.color24 } );
     var nowCube = new THREE.Mesh( boxGeometry, nowMat );
-    nowCube.position.y = nowColor.sat * satScale;
-    nowCube.position.z = nowColor.val * valScale;
+    var xHSV = 0;
+    var yHSV = nowColor.sat * satScale;
+    var zHSV = (nowColor.val-0.5) * valScale;
 
+    var xRGB = (nowColor.redf-0.5) * xScale;
+    var yRGB = (nowColor.greenf-0.5) * yScale;
+    var zRGB = (nowColor.bluef-0.5) * zScale;
+
+    nowCube.position.y = yHSV;
+    nowCube.position.z = zHSV;
+
+    // Create RGB <-> HSV animation objects for box
+    var cubeMixer = new THREE.AnimationMixer(nowCube);
+    animMixers.push(cubeMixer);
+
+    var cubeToRGBTrack = new THREE.VectorKeyframeTrack(
+      ".position",
+      animTimes,
+      [xHSV, yHSV, zHSV, xRGB, yRGB, zRGB]);
+    var cubeToRGBClip = new THREE.AnimationClip(
+      "CubeToRGB"+i,
+      -1,
+      [cubeToRGBTrack]);
+    var cubeToRGB = cubeMixer.clipAction(cubeToRGBClip);
+    cubeToRGB.setLoop(THREE.LoopOnce);
+    cubeToRGB.clampWhenFinished = true;
+    toRGBanim.push(cubeToRGB);
+
+    var cubeToHSVTrack = new THREE.VectorKeyframeTrack(
+      ".position",
+      animTimes,
+      [xRGB, yRGB, zRGB, xHSV, yHSV, zHSV]);
+    var cubeToHSVClip = new THREE.AnimationClip(
+      "CubeToHSV"+i,
+      -1,
+      [cubeToHSVTrack]);
+    var cubeToHSV = cubeMixer.clipAction(cubeToHSVClip);
+    cubeToHSV.setLoop(THREE.LoopOnce);
+    cubeToHSV.clampWhenFinished = true;
+    toHSVanim.push(cubeToHSV);
+
+    // Create rotor for HSV cylinder
     var rotor = new THREE.Group();
 
     rotor.add(nowCube);
     rotor.rotateZ(2*Math.PI*nowColor.hue/360);
-
-    // Record the rotated state for HSV cylinder
-    var rotorRotateHSV = rotor.quaternion;
 
     // Create RGB <-> HSV animation objects
     var rotorMixer = new THREE.AnimationMixer(rotor);
@@ -286,7 +333,7 @@ function addColors() {
     var rotorToRGBTrack = new THREE.QuaternionKeyframeTrack(
       ".quaternion",
       animTimes,
-      rotorRotateHSV.toArray().concat(defaultQuaternion.toArray()));
+      rotor.quaternion.toArray().concat(defaultQuaternion.toArray()));
     var rotorToRGBClip = new THREE.AnimationClip(
       "RotorToRGB"+i,
       -1,
@@ -299,7 +346,7 @@ function addColors() {
     var rotorToHSVTrack = new THREE.QuaternionKeyframeTrack(
       ".quaternion",
       animTimes,
-      defaultQuaternion.toArray().concat(rotorRotateHSV.toArray()));
+      defaultQuaternion.toArray().concat(rotor.quaternion.toArray()));
     var rotorToHSVClip = new THREE.AnimationClip(
       "RotorToHSV"+i,
       -1,
@@ -332,6 +379,32 @@ function animate() {
 function contentLoaded() {
   begin();
   addColors();
+}
+
+/** Switch color model */
+function switchColorModel() {
+  button.disabled = true;
+  window.setTimeout(switchEnable, 1000);
+  for(var i = 0; i < toRGBanim.length; i++) {
+    if (isHSV) {
+      toHSVanim[i].stop();
+      toRGBanim[i].play();
+    } else {
+      toRGBanim[i].stop();
+      toHSVanim[i].play();
+    }
+  }
+}
+
+function switchEnable() {
+  if (isHSV) {
+    isHSV = false;
+    button.textContent = "Switch to HSV";
+  } else {
+    isHSV = true;
+    button.textContent = "Switch to RGB";
+  }
+  button.disabled = false;
 }
 
 //////////////////////////////////////////////////////////////////////////
