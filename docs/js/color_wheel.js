@@ -254,8 +254,8 @@ function addColors() {
   const valScale = 10;
 
   // Adjust these values to increase/decrease density of colors in RGB rectangle
-  const xScale = -20;
-  const yScale = -20;
+  const xScale = -25;
+  const yScale = -25;
   const zScale = 10;
 
   // Adjust these values to tune HSV <-> RGB animation
@@ -371,27 +371,35 @@ function addColors() {
   var cylMixer = new THREE.AnimationMixer(hsvCyl);
   animMixers.push(cylMixer);
 
-  var cylToRGBTrack = new THREE.QuaternionKeyframeTrack(
+  var cylToRGBTrackQ = new THREE.QuaternionKeyframeTrack(
     ".quaternion",
     animTimes,
     hsvCyl.quaternion.toArray().concat(rgbQuatArray));
+  var cylToRGBTrackV = new THREE.VectorKeyframeTrack(
+    ".position",
+    animTimes,
+    [0, 0, 0, xScale/2, -yScale/2, 0]);
   var hsvCylToRGBClip = new THREE.AnimationClip(
     "CylinToRGB",
     -1,
-    [cylToRGBTrack]);
+    [cylToRGBTrackQ, cylToRGBTrackV]);
   var cylToRGB = cylMixer.clipAction(hsvCylToRGBClip);
   cylToRGB.setLoop(THREE.LoopOnce);
   cylToRGB.clampWhenFinished = true;
   toRGBanim.push(cylToRGB);
 
-  var cylToHSVTrack = new THREE.QuaternionKeyframeTrack(
+  var cylToHSVTrackV = new THREE.QuaternionKeyframeTrack(
     ".quaternion",
     animTimes,
     rgbQuatArray.concat(hsvCyl.quaternion.toArray()));
+  var cylToRGBTrackV = new THREE.VectorKeyframeTrack(
+    ".position",
+    animTimes,
+    [xScale/2, -yScale/2, 0, 0, 0, 0]);
   var hsvCylToHSVClip = new THREE.AnimationClip(
     "CylinToHSV",
     -1,
-    [cylToHSVTrack]);
+    [cylToHSVTrackV, cylToRGBTrackV]);
   var cylToHSV = cylMixer.clipAction(hsvCylToHSVClip);
   cylToHSV.setLoop(THREE.LoopOnce);
   cylToHSV.clampWhenFinished = true;
